@@ -1,5 +1,6 @@
 import cv2
 import argparse
+import numpy as np
 
 WINDOW_NAME = "Image Extractor"
 cv2.namedWindow(WINDOW_NAME)
@@ -9,6 +10,8 @@ cv2.namedWindow(WINDOW_NAME)
 selected_points = []
 original_image = None
 displayed_image = None
+
+args = None
 
 
 # arguments in command line
@@ -23,17 +26,44 @@ def parse_args():
 
 def mouse_callback(event, x, y, flags, param):
     global selected_points, original_image, displayed_image
-    if event == cv2.EVENT_LBUTTONDOWN and len(selected_points) < 4:
-        # add point to list
-        selected_points.append((x, y))
-        # mark point
-        displayed_image = cv2.circle(displayed_image, (x, y), 5, (255, 0, 0), -1)
-        # display image
-        cv2.imshow(WINDOW_NAME, displayed_image)
+    if event == cv2.EVENT_LBUTTONDOWN:
+        # only 4 points allowed
+        if len(selected_points) < 4:
+            # add point to list
+            selected_points.append((x, y))
+            # mark point
+            displayed_image = cv2.circle(
+                displayed_image, (x, y), 5, (255, 0, 0), -1)
+            # display image
+            cv2.imshow(WINDOW_NAME, displayed_image)
+        else:
+            # transform image and display result
+            transformed_image = transform_image()
+            if transformed_image is not None:
+                cv2.imshow(WINDOW_NAME, transformed_image)
+
+
+def get_matrix_for_transformation():
+    global selected_points, args
+    if len(selected_points) != 4:
+        print("You have to select 4 points to execute transformation")
+        return
+
+    point_array = np.array(selected_points, dtype=np.float32)
+    destination = np.float32(np.array([[0, 0], [args.outwidth, 0], [
+                             args.outwidth, args.outheight], [0, args.outheight]]))
+    return cv2.getPerspectiveTransform(point_array, destination)
+
+
+def transform_image():
+    global original_image, args
+    matrix = get_matrix_for_transformation()
+    if matrix is not None:
+        return cv2.warpPerspective(original_image, matrix, (args.outwidth, args.outheight), flags=cv2.INTER_LINEAR)
 
 
 def main():
-    global selected_points, original_image, displayed_image
+    global selected_points, original_image, displayed_image, args
 
     # parse arguments
     args = parse_args()
