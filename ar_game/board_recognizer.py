@@ -12,6 +12,10 @@ class BoardRecognizer:
         self.detector = cv2.aruco.ArucoDetector(
             self.aruco_dict, self.aruco_params)
 
+        self.missing_frames = 0
+        self.max_missing_frames = 20
+        self.last_matrix = None
+
     # detects markers in frame and returns corners, ids and rejected points
     def detect_markers(self, frame):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -21,8 +25,7 @@ class BoardRecognizer:
     # draws markers on frame and returns this (for testing purposes)
     def draw_markers(self, frame, corners):
         ret_frame = frame.copy()
-        if ids is not None:
-            cv2.aruco.drawDetectedMarkers(ret_frame, corners)
+        cv2.aruco.drawDetectedMarkers(ret_frame, corners)
         return ret_frame
 
     # rewritten from ../perspective_transformation/image_extractor.py
@@ -46,6 +49,13 @@ class BoardRecognizer:
 
         # board has 4 corner points
         if len(corners) != 4:
+            if self.last_matrix is not None:
+                self.missing_frames += 1
+                if self.missing_frames > self.max_missing_frames:
+                    self.last_matrix = None
+                    self.missing_frames = 0
+                else:
+                    return cv2.warpPerspective(frame, self.last_matrix, (out_width, out_height), flags=cv2.INTER_LINEAR)
             return frame
 
         marker_centers = np.array([corner[0].mean(axis=0)
@@ -55,8 +65,10 @@ class BoardRecognizer:
 
         destination = np.float32(
             [[0, 0], [out_width, 0], [out_width, out_height], [0, out_height]])
-        
+
         mat = cv2.getPerspectiveTransform(ordered_corners, destination)
+        self.last_matrix = mat
+        self.missing_frames = 0
         return cv2.warpPerspective(frame, mat, (out_width, out_height), flags=cv2.INTER_LINEAR)
 
 
