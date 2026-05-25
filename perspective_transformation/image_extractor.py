@@ -50,26 +50,27 @@ def mouse_callback(event, x, y, flags, param):
                 ready_to_save = True
 
 
+# idea on how to order points from perplexity -> use center and angles to order points + top left from previous idea -> roll array to start from top left
 def order_points(points):
     # selected points need to be in order top left -> top right -> bottom right -> bottom left for the transformation to work
     ps = np.array(points, dtype=np.float32)
 
-    # smallest x + y --> top left
-    # largest x + y --> bottom right
-    sum_vals = ps.sum(axis=1)
+    # use center as orientation point
+    center = np.mean(ps, axis=0)
 
-    # smallest x - y --> top right
-    # largest x - y --> bottom left
-    diff_vals = np.diff(ps, axis=1)
+    # use angles to order points
+    angles = np.arctan2(ps[:, 1] - center[1], ps[:, 0] - center[0])
+    ps = ps[np.argsort(angles)]
 
-    ordered = [
-        ps[np.argmin(sum_vals)],
-        ps[np.argmin(diff_vals)],
-        ps[np.argmax(sum_vals)],
-        ps[np.argmax(diff_vals)]
-    ]
+    # top left is starting point
+    # top left is where x + y is smallest
+    add_vals = np.sum(ps, axis=1)
+    top_left_index = np.argmin(add_vals)
 
-    return np.array(ordered, dtype=np.float32)
+    # sort points starting from top left
+    ordered = np.roll(ps, -top_left_index, axis=0)
+
+    return ordered
 
 
 def get_matrix_for_transformation():
