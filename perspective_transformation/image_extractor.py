@@ -8,10 +8,16 @@ cv2.namedWindow(WINDOW_NAME)
 
 # storage for points
 selected_points = []
+
+# original image and image to display
 original_image = None
 displayed_image = None
 
+# arguments from command line
 args = None
+
+# boolean to enable save function
+ready_to_save = False
 
 
 # arguments in command line
@@ -25,7 +31,7 @@ def parse_args():
 
 
 def mouse_callback(event, x, y, flags, param):
-    global selected_points, original_image, displayed_image
+    global selected_points, original_image, displayed_image, ready_to_save
     if event == cv2.EVENT_LBUTTONDOWN:
         # only 4 points allowed
         if len(selected_points) < 4:
@@ -38,9 +44,32 @@ def mouse_callback(event, x, y, flags, param):
             cv2.imshow(WINDOW_NAME, displayed_image)
         else:
             # transform image and display result
-            transformed_image = transform_image()
-            if transformed_image is not None:
-                cv2.imshow(WINDOW_NAME, transformed_image)
+            displayed_image = transform_image()
+            if displayed_image is not None:
+                cv2.imshow(WINDOW_NAME, displayed_image)
+                ready_to_save = True
+
+
+def order_points(points):
+    # selected points need to be in order top left -> top right -> bottom right -> bottom left for the transformation to work
+    ps = np.array(points, dtype=np.float32)
+
+    # smallest x + y --> top left
+    # largest x + y --> bottom right
+    sum_vals = ps.sum(axis=1)
+
+    # smallest x - y --> top right
+    # largest x - y --> bottom left
+    diff_vals = np.diff(ps, axis=1)
+
+    ordered = [
+        ps[np.argmin(sum_vals)],
+        ps[np.argmin(diff_vals)],
+        ps[np.argmax(sum_vals)],
+        ps[np.argmax(diff_vals)]
+    ]
+
+    return np.array(ordered, dtype=np.float32)
 
 
 def get_matrix_for_transformation():
@@ -49,7 +78,7 @@ def get_matrix_for_transformation():
         print("You have to select 4 points to execute transformation")
         return
 
-    point_array = np.array(selected_points, dtype=np.float32)
+    point_array = order_points(selected_points)
     destination = np.float32(np.array([[0, 0], [args.outwidth, 0], [
                              args.outwidth, args.outheight], [0, args.outheight]]))
     return cv2.getPerspectiveTransform(point_array, destination)
@@ -63,7 +92,7 @@ def transform_image():
 
 
 def main():
-    global selected_points, original_image, displayed_image, args
+    global selected_points, original_image, displayed_image, args, ready_to_save
 
     # parse arguments
     args = parse_args()
@@ -92,11 +121,11 @@ def main():
             selected_points = []
             displayed_image = original_image.copy()
             cv2.imshow(WINDOW_NAME, displayed_image)
+            ready_to_save = False
 
         # S pressed --> save image
-        # maybe only save after transformation?
-        elif key == ord('s'):
-            cv2.imwrite(args.output, image)
+        elif key == ord('s') and ready_to_save:
+            cv2.imwrite(args.output, displayed_image)
             print(f"Image saved to {args.output}")
 
         # Q pressed --> quit
