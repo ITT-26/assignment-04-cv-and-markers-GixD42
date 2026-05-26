@@ -6,6 +6,7 @@ from PIL import Image
 import numpy as np
 from player import Player
 from enemy import EnemySpawner
+from constants import *
 
 
 # video capture and board / control setup
@@ -15,26 +16,24 @@ finger_input = FingerInput(recognizer)
 
 
 # window setup
-WINDOW_WIDTH, WINDOW_HEIGHT = 640, 480
 window = pyglet.window.Window(WINDOW_WIDTH, WINDOW_HEIGHT)
 
 # for starting game
-START_HOLD_SECONDS = 3
 hold_timer = 0
 game_running = False
 is_warped = False
-start_zone = (WINDOW_WIDTH // 2 - 90, WINDOW_HEIGHT // 2 + 50, 180, 120)
+start_zone = (WINDOW_WIDTH // 2 - START_ZONE_W // 2, WINDOW_HEIGHT //
+              2 + START_ZONE_OFFSET_Y, START_ZONE_W, START_ZONE_H)
 
 # score and boolean to check if game is over
 score_time = 0
 game_over = False
 
 # player character
-player = Player(WINDOW_WIDTH // 2, WINDOW_HEIGHT * 2)
+player = Player(PLAYER_START_X, PLAYER_START_Y)
 
 
-enemy_spawner = EnemySpawner(spawn_y=WINDOW_HEIGHT + 64, spawn_interval=1.5,
-                             min_spawn_interval=1.0, max_spawn_interval=2.0)
+enemy_spawner = EnemySpawner()
 
 # position of fingertip -> player position
 finger_tip = None
@@ -84,22 +83,19 @@ def point_in_start_zone(point):
 # put text centered with bachground (background logic by ai)
 def put_centered_text(frame, text, y, scale=1.0):
 
-    color = (0, 255, 0)
-    thickness = 2
-
     # get size of text -> calcuate x
     text_size = cv2.getTextSize(
-        text, cv2.FONT_HERSHEY_SIMPLEX, scale, thickness)[0]
+        text, cv2.FONT_HERSHEY_SIMPLEX, scale, THICKNESS)[0]
 
     # x position based on width of text and the window width
     text_x = (WINDOW_WIDTH - text_size[0]) // 2
 
-    # black background
+    # black background (extra thickness)
     cv2.putText(frame, text, (text_x, y), cv2.FONT_HERSHEY_SIMPLEX,
-                scale, (0, 0, 0), thickness + 4, cv2.LINE_AA)
+                scale, TEXT_COLOR_BG, THICKNESS_BG, cv2.LINE_AA)
     # actual text
     cv2.putText(frame, text, (text_x, y), cv2.FONT_HERSHEY_SIMPLEX,
-                scale, color, thickness, cv2.LINE_AA)
+                scale, TEXT_COLOR, THICKNESS, cv2.LINE_AA)
 
 
 def draw_start_screen(frame):
@@ -113,7 +109,8 @@ def draw_start_screen(frame):
     x, y, width, height = start_zone
 
     # draw start zone
-    cv2.rectangle(frame, (x, y), (x + width, y + height), (0, 255, 0), 2)
+    cv2.rectangle(frame, (x, y), (x + width, y + height),
+                  TEXT_COLOR, THICKNESS)
 
     # remaining seconds to start the game
     remaining = max(0, START_HOLD_SECONDS - hold_timer)
@@ -141,7 +138,8 @@ def draw_game_over_screen(frame):
 
     # draw same restart zone as start zone
     x, y, width, height = start_zone
-    cv2.rectangle(frame, (x, y), (x + width, y + height), (0, 255, 0), 2)
+    cv2.rectangle(frame, (x, y), (x + width, y + height),
+                  TEXT_COLOR, THICKNESS)
 
     # restart countdown text
     remaining = max(0, START_HOLD_SECONDS - hold_timer)
@@ -177,6 +175,12 @@ def on_draw():
 
     debug, finger_tip, _ = finger_input.process_frame(warped)
 
+    display_frame = warped
+    if MIRROR_INPUT:
+        display_frame = cv2.flip(warped, 1)
+        if finger_tip is not None:
+            finger_tip = (WINDOW_WIDTH - finger_tip[0], finger_tip[1])
+
     # set player position to fingertip position
     if finger_tip is not None:
         # cv to pyglet
@@ -186,14 +190,14 @@ def on_draw():
 
     # if the game is over -> show game over screen and return early to not draw the game
     if game_over:
-        draw_game_over_screen(warped)
+        draw_game_over_screen(display_frame)
 
     # draw start screen if game is not running
     elif not game_running:
-        draw_start_screen(warped)
+        draw_start_screen(display_frame)
 
     # draw board
-    img = cv2glet(warped, "BGR")
+    img = cv2glet(display_frame, "BGR")
     img.blit(0, 0, 0)
 
     # draw player (and bullets)

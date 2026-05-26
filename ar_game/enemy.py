@@ -1,16 +1,17 @@
 import os
 import pyglet
 import random
+from constants import *
 
 BASE_DIR = os.path.dirname(__file__)
 IMAGE_PATH = os.path.join(BASE_DIR, "img", "enemy_big.png")
 
 
 class Enemy:
-    def __init__(self, x, y, speed=50):
+    def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.speed = speed
+        self.speed = ENEMY_SPEED
 
         # load image and set anchor to center
         image = pyglet.image.load(IMAGE_PATH)
@@ -29,7 +30,7 @@ class Enemy:
 
 
 class EnemySpawner:
-    def __init__(self, spawn_y, spawn_interval=2.0, min_spawn_interval=1.0, max_spawn_interval=3.0):
+    def __init__(self, spawn_y=ENEMY_SPAWN_Y, spawn_interval=ENEMY_SPAWN_INTERVAL, min_spawn_interval=ENEMY_MIN_SPAWN_INTERVAL, max_spawn_interval=ENEMY_MAX_SPAWN_INTERVAL):
 
         # y position
         self.spawn_y = spawn_y
@@ -51,12 +52,12 @@ class EnemySpawner:
 
     def spawn_enemy(self):
         # spawn enemy at random x position
-        min_x = 32
-        max_x = 640 - 32
+        min_x = ENEMY_SIZE // 2
+        max_x = WINDOW_WIDTH - ENEMY_SIZE // 2
         x = random.randint(min_x, max_x)
 
         # enemy spawn
-        enemy = Enemy(x=x, y=self.spawn_y, speed=50)
+        enemy = Enemy(x=x, y=self.spawn_y)
         self.enemies.append(enemy)
 
     def update(self, dt):

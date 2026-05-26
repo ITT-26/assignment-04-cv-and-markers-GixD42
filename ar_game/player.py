@@ -1,5 +1,6 @@
 import os
 import pyglet
+from constants import *
 
 BASE_DIR = os.path.dirname(__file__)
 IMAGE_PATH = os.path.join(BASE_DIR, "img", "player_big.png")
@@ -7,10 +8,10 @@ BULLET_IMAGE_PATH = os.path.join(BASE_DIR, "img", "player_bullet.png")
 
 
 class Bullet:
-    def __init__(self, x, y, speed=100):
+    def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.speed = speed
+        self.speed = BULLET_SPEED
 
         bullet_image = pyglet.image.load(BULLET_IMAGE_PATH)
         bullet_image.anchor_x = bullet_image.width // 2
@@ -26,14 +27,14 @@ class Bullet:
 
 
 class Player:
-    def __init__(self, x, y, fire_rate=0.5):
+    def __init__(self, x, y):
 
         # position
         self.x = x
         self.y = y
 
         # fire rate and timer for shooting
-        self.fire_rate = fire_rate
+        self.fire_rate = PLAYER_FIRE_RATE
         self.fire_timer = 0.0
 
         # all bullets saved
@@ -69,7 +70,8 @@ class Player:
             bullet.update(dt)
 
         # remove bullets that are off-screen
-        self.bullets = [bullet for bullet in self.bullets if bullet.y < 480]
+        self.bullets = [
+            bullet for bullet in self.bullets if bullet.y < WINDOW_HEIGHT]
 
     def draw(self):
         self.sprite.draw()
