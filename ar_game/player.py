@@ -1,7 +1,9 @@
+import os
 import pyglet
 
-IMAGE_PATH = "ar_game/img/player_big.png"
-BULLET_IMAGE_PATH = "ar_game/img/player_bullet.png"
+BASE_DIR = os.path.dirname(__file__)
+IMAGE_PATH = os.path.join(BASE_DIR, "img", "player_big.png")
+BULLET_IMAGE_PATH = os.path.join(BASE_DIR, "img", "player_bullet.png")
 
 
 class Bullet:

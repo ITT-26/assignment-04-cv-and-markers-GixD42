@@ -5,6 +5,8 @@ from finger_input import FingerInput
 from PIL import Image
 import numpy as np
 from player import Player
+from enemy import EnemySpawner
+
 
 # video capture and board / control setup
 cap = cv2.VideoCapture(0)
@@ -18,6 +20,9 @@ window = pyglet.window.Window(WINDOW_WIDTH, WINDOW_HEIGHT)
 
 # player character
 player = Player(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
+
+
+enemy_spawner = EnemySpawner(spawn_y=WINDOW_HEIGHT - 64, spawn_interval=1.5)
 
 # position of fingertip -> player position
 finger_tip = None
@@ -45,6 +50,16 @@ def cv2glet(img, fmt):
     return pyimg
 
 
+# simple check for collision between a bullet and an enemy
+def bullet_enemy_collision(bullet, enemy):
+    return (
+        abs(bullet.x - enemy.x) * 2 < (bullet.sprite.width + enemy.sprite.width)
+        and
+        abs(bullet.y - enemy.y) *
+        2 < (bullet.sprite.height + enemy.sprite.height)
+    )
+
+
 # clean up on close
 @window.event
 def on_close():
@@ -65,7 +80,7 @@ def on_draw():
     if not ret:
         return
 
-    # get board and finger input 
+    # get board and finger input
     # TODO: PAUSE IF BOARD NOT DETECTED -> COUNTDONWN AFTER BOARD DETECTED AGAIN
     corners, ids, _ = recognizer.detect_markers(frame)
     warped = recognizer.warp_board(frame, corners, WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -85,11 +100,34 @@ def on_draw():
 
     # draw player (and bullets)
     player.draw()
+    enemy_spawner.draw()
 
 
 # update for game logic
 def update_game(dt):
     player.update(dt)
+    enemy_spawner.update(dt)
+
+    # bullets and enemies that collided will be removed
+    bullets_to_remove = []
+    enemies_to_remove = []
+
+    # check every combination for collision
+    for bullet in player.bullets:
+        for enemy in enemy_spawner.enemies:
+            if bullet_enemy_collision(bullet, enemy):
+                bullets_to_remove.append(bullet)
+                enemies_to_remove.append(enemy)
+
+    # remove bullets
+    for bullet in bullets_to_remove:
+        if bullet in player.bullets:
+            player.bullets.remove(bullet)
+
+    # remove enemies
+    for enemy in enemies_to_remove:
+        if enemy in enemy_spawner.enemies:
+            enemy_spawner.enemies.remove(enemy)
 
 
 pyglet.clock.schedule_interval(update_game, 1/60.0)
