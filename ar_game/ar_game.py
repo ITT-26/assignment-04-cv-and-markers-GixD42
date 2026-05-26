@@ -1,11 +1,10 @@
 import cv2
 import pyglet
-from board_recognizer import BoardRecognizer
-from finger_input import FingerInput
 from PIL import Image
-import numpy as np
-from player import Player
-from enemy import EnemySpawner
+from board_and_controls.board_recognizer import BoardRecognizer
+from board_and_controls.finger_input import FingerInput
+from game_objects.player import Player
+from game_objects.enemy import EnemySpawner
 from constants import *
 
 
@@ -98,54 +97,49 @@ def put_centered_text(frame, text, y, scale=1.0):
                 scale, TEXT_COLOR, THICKNESS, cv2.LINE_AA)
 
 
-def draw_start_screen(frame):
+def draw_start_rect(frame):
 
-    # no board detected -> tell player to show the board
-    if not is_warped:
-        put_centered_text(frame, "Show board to start", 240, scale=1.0)
-        return
-
-    # will only be called if is_warped is goes to True and will display a small area where the player needs to focus on to start the game
+    # start zone variables
     x, y, width, height = start_zone
 
     # draw start zone
     cv2.rectangle(frame, (x, y), (x + width, y + height),
                   TEXT_COLOR, THICKNESS)
 
-    # remaining seconds to start the game
-    remaining = max(0, START_HOLD_SECONDS - hold_timer)
 
-    # instruction to start the game
-    text = f"Hold for {int(remaining)} seconds"
-    put_centered_text(frame, text, y - 10, scale=1.0)
+# to draw text not in cv2 -> everything drawn in pyglet -> order can be changed
+def draw_overlay_text(text, y, size=20):
+    # label on y axis centered on x axis
+    label = pyglet.text.Label(
+        text,
+        x=WINDOW_WIDTH // 2,
+        y=y,
+        anchor_x="center",
+        anchor_y="center",
+        font_size=size,
+        color=TEXT_COLOR
+    )
 
+    # background for text
+    width = label.content_width + 10 * THICKNESS
+    height = label.content_height + 10 * THICKNESS
 
-def draw_game_over_screen(frame):
-    # headline + score
-    t = max(0, int(score_time))
-    text1 = "GAME OVER"
-    text2 = f"Time: {t}s"
-    text3 = "Show board + hold to restart"
+    bg_x = label.x - width // 2
 
-    put_centered_text(frame, text1, 150, scale=0.9)
-    put_centered_text(frame, text2, 190, scale=0.9)
-    put_centered_text(frame, text3, 240, scale=0.7)
+    # try to center background on text (seems pretty centered to me)
+    bg_y_correction = 5
+    bg_y = label.y - height // 2 - bg_y_correction
 
-    # if board is not detected, do not show restart zone
-    if not is_warped:
-        put_centered_text(frame, "Show board to restart", 270, scale=0.8)
-        return
-
-    # draw same restart zone as start zone
-    x, y, width, height = start_zone
-    cv2.rectangle(frame, (x, y), (x + width, y + height),
-                  TEXT_COLOR, THICKNESS)
-
-    # restart countdown text
-    remaining = max(0, START_HOLD_SECONDS - hold_timer)
-    zone_text = f"Hold here: {int(remaining)}s"
-
-    put_centered_text(frame, zone_text, y + height + 30, scale=0.7)
+    # background rectangle so text is more readable
+    background = pyglet.shapes.Rectangle(
+        x=bg_x,
+        y=bg_y,
+        width=width,
+        height=height,
+        color=TEXT_COLOR_BG
+    )
+    background.draw()
+    label.draw()
 
 
 # clean up on close
@@ -190,11 +184,11 @@ def on_draw():
 
     # if the game is over -> show game over screen and return early to not draw the game
     if game_over:
-        draw_game_over_screen(display_frame)
+        draw_start_rect(display_frame)
 
     # draw start screen if game is not running
-    elif not game_running:
-        draw_start_screen(display_frame)
+    elif not game_running and is_warped:
+        draw_start_rect(display_frame)
 
     # draw board
     img = cv2glet(display_frame, "BGR")
@@ -203,6 +197,30 @@ def on_draw():
     # draw player (and bullets)
     player.draw()
     enemy_spawner.draw()
+
+    # text for overlays
+    if game_over:
+        # game over -> show score
+        draw_overlay_text("GAME OVER", 330, size=28)
+        draw_overlay_text(f"Time: {int(score_time)}s", 290, size=20)
+        # show how to restart if board is detected
+        if is_warped:
+            remaining = max(0, START_HOLD_SECONDS - hold_timer)
+            draw_overlay_text(f"Hold here: {int(remaining)}s", 250, size=20)
+        # if board is not detected -> ask to show board to restart
+        else:
+            draw_overlay_text("Show board to restart", 250, size=20)
+
+    # game is not running
+    elif not game_running:
+        # board is detected -> show countdown to start
+        if is_warped:
+            remaining = max(0, START_HOLD_SECONDS - hold_timer)
+            draw_overlay_text(
+                f"Hold for {int(remaining)} seconds", 250, size=20)
+        # if board is not detected -> ask to show board to start
+        else:
+            draw_overlay_text("Show board to start", 250, size=20)
 
 
 # update for game logic

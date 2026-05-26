@@ -1,7 +1,7 @@
 # All constants
 
 # mirror input from camera -> change depending on your camera setup
-MIRROR_INPUT = False
+MIRROR_INPUT = True
 
 # window dimensions -> best if the same as the camera resolution
 WINDOW_WIDTH = 640
@@ -32,8 +32,8 @@ ENEMY_MIN_SPAWN_INTERVAL = 1.0
 ENEMY_MAX_SPAWN_INTERVAL = 2.0
 
 # Text settings
-TEXT_COLOR = (0, 255, 0)
-TEXT_COLOR_BG = (0, 0, 0)
+TEXT_COLOR = (0, 255, 0, 255)
+TEXT_COLOR_BG = (0, 0, 0, 255)
 
 THICKNESS = 2
 THICKNESS_BG = THICKNESS + 4
