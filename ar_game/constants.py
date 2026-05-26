@@ -1,5 +1,9 @@
 # All constants
 
+# for detection of the finger tip -> try out finger_input.py to find good values for your lighting
+WHITE_MASK_LOWER = (0, 0, 100)
+WHITE_MASK_UPPER = (180, 40, 255)
+
 # mirror input from camera -> change depending on your camera setup
 MIRROR_INPUT = True
 

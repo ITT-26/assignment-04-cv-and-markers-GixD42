@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from constants import *
 
 
 CONTOUR_THRESHOLD = 100
@@ -14,7 +15,7 @@ class FingerInput:
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
         # range for background
-        white_mask = cv2.inRange(hsv, (0, 0, 100), (180, 40, 255))
+        white_mask = cv2.inRange(hsv, WHITE_MASK_LOWER, WHITE_MASK_UPPER)
 
         # white removed from frame
         fg_mask = cv2.bitwise_not(white_mask)
