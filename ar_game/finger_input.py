@@ -61,7 +61,7 @@ if __name__ == "__main__":
             continue
 
         corners, ids, rejectedImgPoints = recognizer.detect_markers(frame)
-        warped = recognizer.warp_board(frame, corners, 640, 480)
+        warped, is_warped = recognizer.warp_board(frame, corners, 640, 480)
 
         debug, finger_tip, fg_mask = finger_input.process_frame(warped)
 

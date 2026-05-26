@@ -75,8 +75,8 @@ class BoardRecognizer:
                     self.last_matrix = None
                     self.missing_frames = 0
                 else:
-                    return cv2.warpPerspective(frame, self.last_matrix, (out_width, out_height), flags=cv2.INTER_LINEAR)
-            return frame
+                    return cv2.warpPerspective(frame, self.last_matrix, (out_width, out_height), flags=cv2.INTER_LINEAR), True
+            return frame, False
 
         ordered_corners = self.order_points(corners)
 
@@ -86,7 +86,7 @@ class BoardRecognizer:
         mat = cv2.getPerspectiveTransform(ordered_corners, destination)
         self.last_matrix = mat
         self.missing_frames = 0
-        return cv2.warpPerspective(frame, mat, (out_width, out_height), flags=cv2.INTER_LINEAR)
+        return cv2.warpPerspective(frame, mat, (out_width, out_height), flags=cv2.INTER_LINEAR), True
 
 
 if __name__ == "__main__":
@@ -105,7 +105,7 @@ if __name__ == "__main__":
         corners, ids, rejectedImgPoints = recognizer.detect_markers(frame)
         view = recognizer.draw_markers(frame, corners)
 
-        warped, mat = recognizer.warp_board(frame, corners, 800, 600)
+        warped, is_warped = recognizer.warp_board(frame, corners, 800, 600)
 
         cv2.imshow('board_recognizer_test', warped)
 
