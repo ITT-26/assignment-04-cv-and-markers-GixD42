@@ -11,8 +11,11 @@ class Bullet:
         self.x = x
         self.y = y
         self.speed = speed
-        self.sprite = pyglet.sprite.Sprite(
-            pyglet.image.load(BULLET_IMAGE_PATH), x=self.x, y=self.y)
+
+        bullet_image = pyglet.image.load(BULLET_IMAGE_PATH)
+        bullet_image.anchor_x = bullet_image.width // 2
+
+        self.sprite = pyglet.sprite.Sprite(bullet_image, x=self.x, y=self.y)
 
     def update(self, dt):
         self.y += self.speed * dt
@@ -50,7 +53,7 @@ class Player:
         self.sprite.y = y
 
     def shoot(self):
-        bullet_start_y = self.y + self.sprite.height // 2
+        bullet_start_y = self.y + self.sprite.height / 2
         self.bullets.append(Bullet(self.x, bullet_start_y))
 
     def update(self, dt):

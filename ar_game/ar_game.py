@@ -25,6 +25,10 @@ game_running = False
 is_warped = False
 start_zone = (WINDOW_WIDTH // 2 - 90, WINDOW_HEIGHT // 2 + 50, 180, 120)
 
+# score and boolean to check if game is over
+score_time = 0
+game_over = False
+
 # player character
 player = Player(WINDOW_WIDTH // 2, WINDOW_HEIGHT * 2)
 
@@ -77,22 +81,32 @@ def point_in_start_zone(point):
             start_zone[1] <= y <= start_zone[1] + start_zone[3])
 
 
+# put text centered with bachground (background logic by ai)
+def put_centered_text(frame, text, y, scale=1.0):
+
+    color = (0, 255, 0)
+    thickness = 2
+
+    # get size of text -> calcuate x
+    text_size = cv2.getTextSize(
+        text, cv2.FONT_HERSHEY_SIMPLEX, scale, thickness)[0]
+
+    # x position based on width of text and the window width
+    text_x = (WINDOW_WIDTH - text_size[0]) // 2
+
+    # black background
+    cv2.putText(frame, text, (text_x, y), cv2.FONT_HERSHEY_SIMPLEX,
+                scale, (0, 0, 0), thickness + 4, cv2.LINE_AA)
+    # actual text
+    cv2.putText(frame, text, (text_x, y), cv2.FONT_HERSHEY_SIMPLEX,
+                scale, color, thickness, cv2.LINE_AA)
+
+
 def draw_start_screen(frame):
 
     # no board detected -> tell player to show the board
     if not is_warped:
-        # black background to see the screen better (asked ai how to do it with cv2 and apparently there is no easy parameter for it)
-        cv2.putText(
-            frame, "Show board to start", (150, 240),
-            cv2.FONT_HERSHEY_SIMPLEX, 1,
-            (0, 0, 0), 5, cv2.LINE_AA
-        )
-        # actual text
-        cv2.putText(
-            frame, "Show board to start", (150, 240),
-            cv2.FONT_HERSHEY_SIMPLEX, 1,
-            (0, 255, 0), 2, cv2.LINE_AA
-        )
+        put_centered_text(frame, "Show board to start", 240, scale=1.0)
         return
 
     # will only be called if is_warped is goes to True and will display a small area where the player needs to focus on to start the game
@@ -106,20 +120,34 @@ def draw_start_screen(frame):
 
     # instruction to start the game
     text = f"Hold for {int(remaining)} seconds"
+    put_centered_text(frame, text, y - 10, scale=1.0)
 
-    # black background
-    cv2.putText(
-        frame, text, (x - 50, y - 10),
-        cv2.FONT_HERSHEY_SIMPLEX, 1,
-        (0, 0, 0), 5, cv2.LINE_AA
-    )
 
-    # actual text
-    cv2.putText(
-        frame, text, (x - 50, y - 10),
-        cv2.FONT_HERSHEY_SIMPLEX, 1,
-        (0, 255, 0), 2, cv2.LINE_AA
-    )
+def draw_game_over_screen(frame):
+    # headline + score
+    t = max(0, int(score_time))
+    text1 = "GAME OVER"
+    text2 = f"Time: {t}s"
+    text3 = "Show board + hold to restart"
+
+    put_centered_text(frame, text1, 150, scale=0.9)
+    put_centered_text(frame, text2, 190, scale=0.9)
+    put_centered_text(frame, text3, 240, scale=0.7)
+
+    # if board is not detected, do not show restart zone
+    if not is_warped:
+        put_centered_text(frame, "Show board to restart", 270, scale=0.8)
+        return
+
+    # draw same restart zone as start zone
+    x, y, width, height = start_zone
+    cv2.rectangle(frame, (x, y), (x + width, y + height), (0, 255, 0), 2)
+
+    # restart countdown text
+    remaining = max(0, START_HOLD_SECONDS - hold_timer)
+    zone_text = f"Hold here: {int(remaining)}s"
+
+    put_centered_text(frame, zone_text, y + height + 30, scale=0.7)
 
 
 # clean up on close
@@ -133,7 +161,7 @@ def on_close():
 
 @window.event
 def on_draw():
-    global finger_tip, is_warped, game_running
+    global finger_tip, is_warped, game_running, game_over
 
     # clear window and read frame
     window.clear()
@@ -156,8 +184,12 @@ def on_draw():
         y_pyglet = WINDOW_HEIGHT - y_cv
         player.set_position(x_cv, y_pyglet)
 
+    # if the game is over -> show game over screen and return early to not draw the game
+    if game_over:
+        draw_game_over_screen(warped)
+
     # draw start screen if game is not running
-    if not game_running:
+    elif not game_running:
         draw_start_screen(warped)
 
     # draw board
@@ -171,7 +203,23 @@ def on_draw():
 
 # update for game logic
 def update_game(dt):
-    global hold_timer, game_running, finger_tip
+    global hold_timer, game_running, finger_tip, score_time, game_over
+
+    if game_over:
+        enemy_spawner.enemies.clear()
+        player.bullets.clear()
+        if not is_warped:
+            return
+        if point_in_start_zone(finger_tip):
+            hold_timer += dt
+            if hold_timer >= START_HOLD_SECONDS:
+                game_over = False
+                game_running = True
+                hold_timer = 0
+                score_time = 0
+        else:
+            hold_timer = 0
+        return
 
     # if the board is not detected -> game isnt running -> reset game and timers
     if not is_warped:
@@ -192,9 +240,20 @@ def update_game(dt):
             hold_timer = 0
         return
 
-    # update game objects
+    # update game objects and score time
     player.update(dt)
     enemy_spawner.update(dt)
+    score_time += dt
+
+    # check if any enemy reached the bottom of the screen -> game over
+    for enemy in enemy_spawner.enemies:
+        if enemy.y < -enemy.sprite.height / 2:
+            game_over = True
+            game_running = False
+            hold_timer = 0
+            enemy_spawner.enemies.clear()
+            player.bullets.clear()
+            break
 
     # bullets and enemies that collided will be removed
     bullets_to_remove = []
