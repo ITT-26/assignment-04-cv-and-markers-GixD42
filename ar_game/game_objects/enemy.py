@@ -30,13 +30,12 @@ class Enemy:
 
 
 class EnemySpawner:
-    def __init__(self, spawn_y=ENEMY_SPAWN_Y, spawn_interval=ENEMY_SPAWN_INTERVAL, min_spawn_interval=ENEMY_MIN_SPAWN_INTERVAL, max_spawn_interval=ENEMY_MAX_SPAWN_INTERVAL):
+    def __init__(self, spawn_y=ENEMY_SPAWN_Y, min_spawn_interval=ENEMY_MIN_SPAWN_INTERVAL, max_spawn_interval=ENEMY_MAX_SPAWN_INTERVAL):
 
         # y position
         self.spawn_y = spawn_y
 
         # spawn interval with max and min for randomization
-        self.spawn_interval = spawn_interval
         self.min_spawn_interval = min_spawn_interval
         self.max_spawn_interval = max_spawn_interval
 

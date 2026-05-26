@@ -1,5 +1,9 @@
 # All constants
 
+# constant for board recognition
+# how many frames for the board to be considered lost
+MAX_MISSING_FRAMES = 20
+
 # for detection of the finger tip -> try out finger_input.py to find good values for your lighting
 WHITE_MASK_LOWER = (0, 0, 100)
 WHITE_MASK_UPPER = (180, 40, 255)
@@ -31,7 +35,6 @@ ENEMY_SIZE = 64
 ENEMY_SPAWN_Y = WINDOW_HEIGHT + ENEMY_SIZE
 ENEMY_SPEED = 150
 # spawn interval with minimum and maximum for randomization
-ENEMY_SPAWN_INTERVAL = 1.0
 ENEMY_MIN_SPAWN_INTERVAL = 0.5
 ENEMY_MAX_SPAWN_INTERVAL = 1.5
 

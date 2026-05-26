@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from constants import *
 
 
 class BoardRecognizer:
@@ -13,7 +14,7 @@ class BoardRecognizer:
             self.aruco_dict, self.aruco_params)
 
         self.missing_frames = 0
-        self.max_missing_frames = 20
+        self.max_missing_frames = MAX_MISSING_FRAMES
         self.last_matrix = None
 
     # detects markers in frame and returns corners, ids and rejected points
