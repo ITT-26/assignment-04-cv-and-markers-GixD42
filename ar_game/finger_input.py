@@ -2,6 +2,9 @@ import cv2
 import numpy as np
 
 
+CONTOUR_THRESHOLD = 100
+
+
 class FingerInput:
     def __init__(self, board_recognizer):
         self.board_recognizer = board_recognizer
@@ -27,11 +30,14 @@ class FingerInput:
         # find biggest contour and place circle on top of it
         if contours:
             cnt = max(contours, key=cv2.contourArea)
+            # filter out small contours that are likely noise
+            if cv2.contourArea(cnt) < CONTOUR_THRESHOLD:
+                return debug, finger_tip, fg_mask
             top_idx = cnt[:, :, 1].argmin()
-            
+
             # will be used for the game
             finger_tip = tuple(cnt[top_idx][0])
-            
+
             # display fingertip for testing
             debug = cv2.circle(debug, finger_tip, 10, (0, 0, 255), 2)
 
@@ -53,8 +59,6 @@ if __name__ == "__main__":
 
         if not ret:
             continue
-
-        # frame = cv2.resize(frame, (800, 600))
 
         corners, ids, rejectedImgPoints = recognizer.detect_markers(frame)
         warped = recognizer.warp_board(frame, corners, 640, 480)
