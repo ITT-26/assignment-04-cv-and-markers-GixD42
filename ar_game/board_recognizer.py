@@ -30,18 +30,38 @@ class BoardRecognizer:
 
     # rewritten from ../perspective_transformation/image_extractor.py
     # orders markers to see what marker is on what position
-    def order_points(self, marker_centers):
+    def order_points(self, corners):
+
+        # centers of each marker to determine angle
+        marker_centers = np.array([corner[0].mean(axis=0)
+                                  for corner in corners])
+
+        # center of all markers to determine angle
         center = marker_centers.mean(axis=0)
 
+        # angles to order points -> left right top bottom are now in order
         angles = np.arctan2(
             marker_centers[:, 1] - center[1], marker_centers[:, 0] - center[0])
-        marker_centers = marker_centers[np.argsort(angles)]
+        order = np.argsort(angles)
+        corners_sorted = [corners[i] for i in order]
+        marker_centers_sorted = marker_centers[order]
 
-        add_vals = np.sum(marker_centers, axis=1)
+        # top left is where x + y is smallest
+        add_vals = np.sum(marker_centers_sorted, axis=1)
         top_left_index = np.argmin(add_vals)
 
-        ordered = np.roll(marker_centers, -top_left_index, axis=0)
-        return ordered
+        # top left is starting point
+        corners_sorted = np.roll(corners_sorted, -top_left_index, axis=0)
+
+        # markers shouldn't be in the frame
+        board_corners = []
+        for corner in corners_sorted:
+            # closest point to center of marker is the corner of the board
+            dists = np.linalg.norm(corner[0] - center, axis=1)
+            idx = np.argmin(dists)
+            board_corners.append(corner[0][idx])
+
+        return np.array(board_corners, dtype=np.float32)
 
     # rewritten from ../perspective_transformation/image_extractor.py
     # uses markers as points for persepective transformation
@@ -58,10 +78,7 @@ class BoardRecognizer:
                     return cv2.warpPerspective(frame, self.last_matrix, (out_width, out_height), flags=cv2.INTER_LINEAR)
             return frame
 
-        marker_centers = np.array([corner[0].mean(axis=0)
-                                  for corner in corners])
-
-        ordered_corners = self.order_points(marker_centers)
+        ordered_corners = self.order_points(corners)
 
         destination = np.float32(
             [[0, 0], [out_width, 0], [out_width, out_height], [0, out_height]])
@@ -88,7 +105,7 @@ if __name__ == "__main__":
         corners, ids, rejectedImgPoints = recognizer.detect_markers(frame)
         view = recognizer.draw_markers(frame, corners)
 
-        warped = recognizer.warp_board(frame, corners, 800, 600)
+        warped, mat = recognizer.warp_board(frame, corners, 800, 600)
 
         cv2.imshow('board_recognizer_test', warped)
 
