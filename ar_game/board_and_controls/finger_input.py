@@ -1,5 +1,13 @@
+import os
+import sys
+
 import cv2
 import numpy as np
+
+# to start this script directly
+if __package__ is None:
+    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
 from constants import *
 
 
